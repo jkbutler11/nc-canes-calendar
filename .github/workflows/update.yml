@@ -1,0 +1,29 @@
+name: Update calendar
+
+on:
+  schedule:
+    - cron: "17 10 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-calendar
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node generate.mjs
+      - name: Commit regenerated calendar
+        run: |
+          git config user.name "calendar-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add calendar.ics
+          git diff --cached --quiet || git commit -m "chore: refresh calendar"
+          git push
