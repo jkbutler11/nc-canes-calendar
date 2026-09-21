@@ -3,7 +3,12 @@ name: Update calendar
 on:
   schedule:
     - cron: "17 10 * * *"
+    - cron: "0 14,15 * * *"
   workflow_dispatch:
+    inputs:
+      test_message:
+        description: "Send this text instead of game-day detection (leave empty for normal behavior)"
+        required: false
 
 permissions:
   contents: write
@@ -27,3 +32,29 @@ jobs:
           git add calendar.ics
           git diff --cached --quiet || git commit -m "chore: refresh calendar"
           git push
+
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node generate.mjs
+      - id: gameday
+        run: node notify.mjs
+        env:
+          TEST_MESSAGE: ${{ inputs.test_message }}
+      - name: Send game-day text
+        if: steps.gameday.outputs.games == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Game day"
+          from: ${{ secrets.MAIL_USERNAME }}
+          to: ${{ secrets.SMS_TO }}
+          body: ${{ env.SMS_MESSAGE }}
