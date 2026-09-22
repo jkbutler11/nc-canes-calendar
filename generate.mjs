@@ -114,6 +114,14 @@ function parseEvent(feed, event) {
 	return { id: event.id, start, timeValid, summary, description, venue, feed };
 }
 
+function esc(s) {
+	return s
+		.replaceAll("\\", "\\\\")
+		.replaceAll(";", "\\;")
+		.replaceAll(",", "\\,")
+		.replaceAll("\n", "\\n");
+}
+
 function vevent({ id, start, timeValid, summary, description, venue, feed }) {
 	const alarm = timeValid
 		? `TRIGGER:-PT${feed.alarmHours}H`
@@ -134,10 +142,10 @@ function vevent({ id, start, timeValid, summary, description, venue, feed }) {
 			`DTEND;VALUE=DATE:${etDate(next).replaceAll("-", "")}`,
 		);
 	}
+	lines.push(`SUMMARY:${esc(summary)}`);
+	if (venue) lines.push(`LOCATION:${esc(venue)}`);
+	if (description) lines.push(`DESCRIPTION:${esc(description)}`);
 	lines.push(
-		`SUMMARY:${summary}`,
-		`LOCATION:${venue}`,
-		`DESCRIPTION:${description}`,
 		"BEGIN:VALARM",
 		"ACTION:DISPLAY",
 		"DESCRIPTION:Game reminder",
