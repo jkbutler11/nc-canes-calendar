@@ -45,16 +45,18 @@ jobs:
         run: node notify.mjs
         env:
           TEST_MESSAGE: ${{ inputs.test_message }}
-      - name: Send game-day text
+      - name: Send game-day notification
         if: steps.gameday.outputs.games == 'true'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: "Game day"
-          from: ${{ secrets.MAIL_USERNAME }}
-          to: ${{ secrets.SMS_TO }}
-          body: ${{ env.SMS_MESSAGE }}
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          if [[ ! "$NTFY_TOPIC" =~ ^[A-Za-z0-9_-]+$ ]]; then
+            echo "::error::NTFY_TOPIC must be configured as a valid ntfy topic."
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            --output /dev/null \
+            --header "Title: Game day" \
+            --data-binary "$SMS_MESSAGE" \
+            "https://ntfy.sh/$NTFY_TOPIC"
